@@ -24,25 +24,41 @@ public class Main {
         Employee refPere = Manager.addEmployee("Pere", "Soler", 38000);
         Employee refLaia = Manager.addEmployee("Laia", "Puig", 45000);
 
-        // Crear contactes (caps d'equip)
-        Contact refCarla = Manager.addContact("Carla", "carla.vidal@empresa.cat");
-        Contact refJordi = Manager.addContact("Jordi", "jordi.marti@empresa.cat");
+        // Crear dades de contacte per cada empleat
+        // Contactes d'en Joan
+        Manager.addContactToEmployee(refJoan.getEmployeeId(), 
+            "EMAIL", "joan.garcia@empresa.cat", "Email corporatiu");
+        Manager.addContactToEmployee(refJoan.getEmployeeId(), 
+            "PHONE", "666111222", "Telèfon mòbil");
+        Manager.addContactToEmployee(refJoan.getEmployeeId(), 
+            "ADDRESS", "Carrer Major 1, Barcelona", "Adreça personal");
+
+        // Contactes de la Marta
+        Manager.addContactToEmployee(refMarta.getEmployeeId(), 
+            "EMAIL", "marta.ferrer@empresa.cat", "Email corporatiu");
+        Manager.addContactToEmployee(refMarta.getEmployeeId(), 
+            "EMAIL", "martaf@gmail.com", "Email personal");
+        Manager.addContactToEmployee(refMarta.getEmployeeId(), 
+            "PHONE", "666333444", "Telèfon mòbil");
+
+        // Contactes d'en Pere
+        Manager.addContactToEmployee(refPere.getEmployeeId(), 
+            "EMAIL", "pere.soler@empresa.cat", "Email corporatiu");
+        Manager.addContactToEmployee(refPere.getEmployeeId(), 
+            "PHONE", "666555666", "Telèfon empresa");
+
+        // Contactes de la Laia
+        Manager.addContactToEmployee(refLaia.getEmployeeId(), 
+            "EMAIL", "laia.puig@empresa.cat", "Email corporatiu");
+        Manager.addContactToEmployee(refLaia.getEmployeeId(), 
+            "PHONE", "666777888", "Telèfon mòbil");
+        Manager.addContactToEmployee(refLaia.getEmployeeId(), 
+            "ADDRESS", "Avinguda Diagonal 100, Barcelona", "Adreça oficina");
         
         // Crear projectes
         Project refWebApp = Manager.addProject("Web Corporativa", "Desenvolupament web responsive", "ACTIU");
         Project refAppMovil = Manager.addProject("App Mòbil", "Aplicació Android/iOS", "ACTIU");
         Project refIntranet = Manager.addProject("Intranet", "Portal intern", "PLANIFICAT");
-
-        // Assignar empleats als seus caps d'equip
-        Set<Employee> equipCarla = new HashSet<>();
-        equipCarla.add(refJoan);
-        equipCarla.add(refMarta);
-        Manager.updateContact(refCarla.getContactId(), refCarla.getName(), refCarla.getEmail(), equipCarla);
-
-        Set<Employee> equipJordi = new HashSet<>();
-        equipJordi.add(refPere);
-        equipJordi.add(refLaia);
-        Manager.updateContact(refJordi.getContactId(), refJordi.getName(), refJordi.getEmail(), equipJordi);
 
         // Assignar empleats als projectes
         Set<Project> projectesJoan = new HashSet<>();
@@ -65,14 +81,19 @@ public class Main {
         Manager.updateEmployeeProjects(refLaia.getEmployeeId(), projectesLaia);
 
         // Mostrar l'estat final
-        System.out.println("=== Empleats i els seus projectes ===");
+        System.out.println("\n=== Empleats i les seves dades de contacte ===");
         System.out.println(Manager.collectionToString(Employee.class, Manager.listCollection(Employee.class)));
-        
-        System.out.println("\n=== Contactes i els seus equips ===");
-        System.out.println(Manager.collectionToString(Contact.class, Manager.listCollection(Contact.class)));
         
         System.out.println("\n=== Projectes i els seus participants ===");
         System.out.println(Manager.collectionToString(Project.class, Manager.listCollection(Project.class)));
+
+        // Exemple de cerca d'empleats per tipus de contacte
+        System.out.println("\n=== Empleats amb telèfon mòbil ===");
+        System.out.println(Manager.findEmployeesByContactType("PHONE"));
+        
+        // Exemple de cerca d'empleats per projecte
+        System.out.println("\n=== Empleats treballant en el projecte 'App Mòbil' ===");
+        System.out.println(Manager.findEmployeesByProject(refAppMovil.getProjectId()));
 
         Manager.close();
     }

@@ -17,18 +17,30 @@ import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.query.NativeQuery;
 
+/**
+ * Gestor principal per les operacions amb la base de dades utilitzant Hibernate/JPA.
+ * Proporciona mètodes per gestionar empleats, contactes i projectes.
+ */
 public class Manager {
+    // SessionFactory és thread-safe i s'ha de crear una sola vegada per l'aplicació
     private static SessionFactory factory;
 
+    /**
+     * Crea la SessionFactory amb la configuració per defecte.
+     * La SessionFactory és un objecte pesat que s'hauria de crear una sola vegada.
+     * Utilitza el fitxer hibernate.properties per la configuració.
+     */
     public static void createSessionFactory() {
         try {
+            // Creem una configuració de Hibernate
             Configuration configuration = new Configuration();
             
-            // Afegim les classes amb anotacions
+            // Registrem les classes que tenen anotacions JPA
             configuration.addAnnotatedClass(Employee.class);
             configuration.addAnnotatedClass(Contact.class);
             configuration.addAnnotatedClass(Project.class);
 
+            // Creem el registre de serveis i la SessionFactory
             StandardServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
                 .applySettings(configuration.getProperties())
                 .build();
@@ -40,6 +52,10 @@ public class Manager {
         }
     }
 
+    /**
+     * Crea la SessionFactory amb un fitxer de propietats específic.
+     * Útil per tenir diferents configuracions (desenvolupament, test, producció).
+     */
     public static void createSessionFactory(String propertiesFileName) {
         try {
             Configuration configuration = new Configuration();
@@ -48,6 +64,7 @@ public class Manager {
             configuration.addAnnotatedClass(Contact.class);
             configuration.addAnnotatedClass(Project.class);
 
+            // Carreguem les propietats des del fitxer
             Properties properties = new Properties();
             try (InputStream input = Manager.class.getClassLoader().getResourceAsStream(propertiesFileName)) {
                 if (input == null) {
@@ -69,112 +86,97 @@ public class Manager {
         }
     }
 
+    /**
+     * Tanca la SessionFactory i allibera els recursos.
+     * Important cridar aquest mètode al finalitzar l'aplicació.
+     */
     public static void close() {
         factory.close();
     }
 
-    // Mètodes per Employee
+    // ---------- Mètodes per gestionar Empleats ----------
+
+    /**
+     * Afegeix un nou empleat a la base de dades.
+     * Hibernate s'encarrega de generar l'ID automàticament.
+     */
     public static Employee addEmployee(String firstName, String lastName, int salary) {
+        // Session NO és thread-safe, cada operació necessita la seva pròpia sessió
         Session session = factory.openSession();
         Transaction tx = null;
         Employee result = null;
         try {
+            // Iniciem la transacció
             tx = session.beginTransaction();
+            
+            // Creem i persistim el nou empleat
             result = new Employee(firstName, lastName, salary);
             session.persist(result);
+            
+            // Confirmem la transacció
             tx.commit();
         } catch (HibernateException e) {
+            // En cas d'error, fem rollback de la transacció
             if (tx != null) tx.rollback();
             e.printStackTrace();
             result = null;
         } finally {
+            // Sempre tanquem la sessió
             session.close();
         }
         return result;
     }
 
-    public static void updateEmployee(long employeeId, String firstName, String lastName, int salary) {
-        Session session = factory.openSession();
-        Transaction tx = null;
-        try {
-            tx = session.beginTransaction();
-            Employee emp = session.get(Employee.class, employeeId);
-            emp.setFirstName(firstName);
-            emp.setLastName(lastName);
-            emp.setSalary(salary);
-            session.merge(emp);
-            tx.commit();
-        } catch (HibernateException e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-        } finally {
-            session.close();
-        }
-    }
-
-    public static void updateEmployeeProjects(long employeeId, Set<Project> projects) {
-        Session session = factory.openSession();
-        Transaction tx = null;
-        try {
-            tx = session.beginTransaction();
-            Employee emp = session.get(Employee.class, employeeId);
-            emp.getProjects().clear();
-            for (Project project : projects) {
-                Project managedProject = session.get(Project.class, project.getProjectId());
-                emp.addProject(managedProject);
-            }
-            session.merge(emp);
-            tx.commit();
-        } catch (HibernateException e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-        } finally {
-            session.close();
-        }
-    }
-
-    // Mètodes per Contact
-    public static Contact addContact(String name, String email) {
+    /**
+     * Afegeix una nova dada de contacte a un empleat existent.
+     * Utilitza la relació OneToMany entre Employee i Contact.
+     */
+    public static Contact addContactToEmployee(long employeeId, String contactType, String value, String description) {
         Session session = factory.openSession();
         Transaction tx = null;
         Contact result = null;
         try {
             tx = session.beginTransaction();
-            result = new Contact(name, email);
-            session.persist(result);
+            
+            // Obtenim l'empleat
+            Employee emp = session.get(Employee.class, employeeId);
+            if (emp != null) {
+                // Creem i associem el nou contacte
+                Contact contact = new Contact(contactType, value, description);
+                emp.addContact(contact);  // Aquest mètode gestiona la relació bidireccional
+                session.persist(contact);
+                session.merge(emp);
+                result = contact;
+            }
+            
             tx.commit();
         } catch (HibernateException e) {
             if (tx != null) tx.rollback();
             e.printStackTrace();
-            result = null;
         } finally {
             session.close();
         }
         return result;
     }
 
-    public static void updateContact(long contactId, String name, String email, Set<Employee> employees) {
+    /**
+     * Actualitza la informació bàsica d'un empleat.
+     * Utilitza session.merge() per actualitzar l'entitat gestionada.
+     */
+    public static void updateEmployee(long employeeId, String firstName, String lastName, int salary) {
         Session session = factory.openSession();
         Transaction tx = null;
         try {
             tx = session.beginTransaction();
-            Contact contact = session.get(Contact.class, contactId);
-            contact.setName(name);
-            contact.setEmail(email);
             
-            // Netegem les relacions existents
-            for (Employee emp : contact.getEmployees()) {
-                emp.setContact(null);
-            }
-            contact.getEmployees().clear();
-            
-            // Afegim les noves relacions
-            for (Employee emp : employees) {
-                Employee managedEmp = session.get(Employee.class, emp.getEmployeeId());
-                contact.addEmployee(managedEmp);
+            Employee emp = session.get(Employee.class, employeeId);
+            if (emp != null) {
+                emp.setFirstName(firstName);
+                emp.setLastName(lastName);
+                emp.setSalary(salary);
+                session.merge(emp);
             }
             
-            session.merge(contact);
             tx.commit();
         } catch (HibernateException e) {
             if (tx != null) tx.rollback();
@@ -184,7 +186,42 @@ public class Manager {
         }
     }
 
-    // Mètodes per Project
+    /**
+     * Actualitza els projectes assignats a un empleat.
+     * Gestiona la relació ManyToMany entre Employee i Project.
+     */
+    public static void updateEmployeeProjects(long employeeId, Set<Project> projects) {
+        Session session = factory.openSession();
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
+            
+            Employee emp = session.get(Employee.class, employeeId);
+            // Netegem els projectes existents
+            emp.getProjects().clear();
+            
+            // Afegim els nous projectes
+            for (Project project : projects) {
+                // És important obtenir la versió gestionada del projecte
+                Project managedProject = session.get(Project.class, project.getProjectId());
+                emp.addProject(managedProject);  // Aquest mètode gestiona la relació bidireccional
+            }
+            
+            session.merge(emp);
+            tx.commit();
+        } catch (HibernateException e) {
+            if (tx != null) tx.rollback();
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+    }
+
+    // ---------- Mètodes per gestionar Projectes ----------
+
+    /**
+     * Afegeix un nou projecte a la base de dades.
+     */
     public static Project addProject(String name, String description, String status) {
         Session session = factory.openSession();
         Transaction tx = null;
@@ -204,16 +241,21 @@ public class Manager {
         return result;
     }
 
+    /**
+     * Actualitza la informació d'un projecte existent.
+     */
     public static void updateProject(long projectId, String name, String description, String status) {
         Session session = factory.openSession();
         Transaction tx = null;
         try {
             tx = session.beginTransaction();
             Project project = session.get(Project.class, projectId);
-            project.setName(name);
-            project.setDescription(description);
-            project.setStatus(status);
-            session.merge(project);
+            if (project != null) {
+                project.setName(name);
+                project.setDescription(description);
+                project.setStatus(status);
+                session.merge(project);
+            }
             tx.commit();
         } catch (HibernateException e) {
             if (tx != null) tx.rollback();
@@ -223,18 +265,25 @@ public class Manager {
         }
     }
 
-    public static void updateProjectEmployees(long projectId, Set<Employee> employees) {
+    // ---------- Mètodes de cerca específics ----------
+
+    /**
+     * Troba tots els empleats que tenen un cert tipus de contacte.
+     * Utilitza una consulta HQL amb JOIN.
+     */
+    public static Collection<Employee> findEmployeesByContactType(String contactType) {
         Session session = factory.openSession();
         Transaction tx = null;
+        Collection<Employee> result = null;
         try {
             tx = session.beginTransaction();
-            Project project = session.get(Project.class, projectId);
-            project.getEmployees().clear();
-            for (Employee emp : employees) {
-                Employee managedEmp = session.get(Employee.class, emp.getEmployeeId());
-                project.addEmployee(managedEmp);
-            }
-            session.merge(project);
+            
+            // Consulta HQL amb JOIN i DISTINCT per evitar duplicats
+            String hql = "SELECT DISTINCT e FROM Employee e JOIN e.contacts c WHERE c.contactType = :type";
+            result = session.createQuery(hql, Employee.class)
+                          .setParameter("type", contactType)
+                          .list();
+            
             tx.commit();
         } catch (HibernateException e) {
             if (tx != null) tx.rollback();
@@ -242,9 +291,41 @@ public class Manager {
         } finally {
             session.close();
         }
+        return result;
     }
 
-    // Mètodes genèrics
+    /**
+     * Troba tots els empleats assignats a un projecte específic.
+     */
+    public static Collection<Employee> findEmployeesByProject(long projectId) {
+        Session session = factory.openSession();
+        Transaction tx = null;
+        Collection<Employee> result = null;
+        try {
+            tx = session.beginTransaction();
+            
+            Project project = session.get(Project.class, projectId);
+            if (project != null) {
+                // Utilitzem la col·lecció d'empleats del projecte directament
+                result = project.getEmployees();
+            }
+            
+            tx.commit();
+        } catch (HibernateException e) {
+            if (tx != null) tx.rollback();
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+        return result;
+    }
+
+    // ---------- Mètodes genèrics ----------
+
+    /**
+     * Obté una entitat per ID.
+     * Mètode genèric que funciona amb qualsevol entitat JPA.
+     */
     public static <T> T getById(Class<? extends T> clazz, long id) {
         Session session = factory.openSession();
         Transaction tx = null;
@@ -262,6 +343,10 @@ public class Manager {
         return obj;
     }
 
+    /**
+     * Elimina una entitat per ID.
+     * Mètode genèric que funciona amb qualsevol entitat JPA.
+     */
     public static <T> void delete(Class<? extends T> clazz, Serializable id) {
         Session session = factory.openSession();
         Transaction tx = null;
@@ -280,21 +365,24 @@ public class Manager {
         }
     }
 
-    public static <T> Collection<?> listCollection(Class<? extends T> clazz) {
-        return listCollection(clazz, "");
-    }
-
+    /**
+     * Llista totes les entitats d'una classe específica.
+     * Permet filtrar amb una clàusula WHERE opcional.
+     */
     public static <T> Collection<?> listCollection(Class<? extends T> clazz, String where) {
         Session session = factory.openSession();
         Transaction tx = null;
         Collection<?> result = null;
         try {
             tx = session.beginTransaction();
+            
+            // Construïm la consulta HQL
             if (where.length() == 0) {
                 result = session.createQuery("FROM " + clazz.getName(), clazz).list();
             } else {
                 result = session.createQuery("FROM " + clazz.getName() + " WHERE " + where, clazz).list();
             }
+            
             tx.commit();
         } catch (HibernateException e) {
             if (tx != null) tx.rollback();
@@ -305,6 +393,14 @@ public class Manager {
         return result;
     }
 
+    public static <T> Collection<?> listCollection(Class<? extends T> clazz) {
+        return listCollection(clazz, "");
+    }
+
+    /**
+     * Converteix una col·lecció d'entitats a String.
+     * Útil per mostrar resultats.
+     */
     public static <T> String collectionToString(Class<? extends T> clazz, Collection<?> collection) {
         StringBuilder txt = new StringBuilder();
         for (Object obj : collection) {
@@ -317,7 +413,11 @@ public class Manager {
         return txt.toString();
     }
 
-    // Mètodes per consultes natives SQL
+    // ---------- Mètodes per consultes SQL natives ----------
+
+    /**
+     * Executa una consulta SQL nativa d'actualització.
+     */
     public static void queryUpdate(String queryString) {
         Session session = factory.openSession();
         Transaction tx = null;
@@ -334,6 +434,9 @@ public class Manager {
         }
     }
 
+    /**
+     * Executa una consulta SQL nativa de selecció.
+     */
     public static List<Object[]> queryTable(String queryString) {
         Session session = factory.openSession();
         Transaction tx = null;
@@ -352,6 +455,10 @@ public class Manager {
         return result;
     }
 
+    /**
+     * Converteix els resultats d'una consulta SQL nativa a String.
+     * Útil per mostrar els resultats de queryTable().
+     */
     public static String tableToString(List<Object[]> rows) {
         StringBuilder txt = new StringBuilder();
         for (Object[] row : rows) {
@@ -367,5 +474,89 @@ public class Manager {
             txt.setLength(txt.length() - 1);  // Eliminem l'últim salt de línia
         }
         return txt.toString();
+    }
+
+    /**
+     * Cerca contactes per empleat i tipus.
+     * Exemple de consulta amb múltiples criteris.
+     */
+    public static Collection<Contact> findContactsByEmployeeAndType(long employeeId, String contactType) {
+        Session session = factory.openSession();
+        Transaction tx = null;
+        Collection<Contact> result = null;
+        try {
+            tx = session.beginTransaction();
+            
+            // Consulta HQL amb múltiples condicions
+            String hql = "FROM Contact c WHERE c.employee.id = :empId AND c.contactType = :type";
+            result = session.createQuery(hql, Contact.class)
+                          .setParameter("empId", employeeId)
+                          .setParameter("type", contactType)
+                          .list();
+            
+            tx.commit();
+        } catch (HibernateException e) {
+            if (tx != null) tx.rollback();
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+        return result;
+    }
+
+    /**
+     * Elimina un contacte específic d'un empleat.
+     * Exemple de com gestionar relacions en operacions d'eliminació.
+     */
+    public static void removeContactFromEmployee(long employeeId, long contactId) {
+        Session session = factory.openSession();
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
+            
+            Employee emp = session.get(Employee.class, employeeId);
+            Contact contact = session.get(Contact.class, contactId);
+            
+            if (emp != null && contact != null) {
+                // Utilitzem el mètode d'utilitat que manté la consistència bidireccional
+                emp.removeContact(contact);
+                session.remove(contact);
+                session.merge(emp);
+            }
+            
+            tx.commit();
+        } catch (HibernateException e) {
+            if (tx != null) tx.rollback();
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+    }
+
+    /**
+     * Actualitza la informació d'un contacte.
+     * Exemple d'actualització simple d'una entitat.
+     */
+    public static void updateContact(long contactId, String contactType, String value, String description) {
+        Session session = factory.openSession();
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
+            
+            Contact contact = session.get(Contact.class, contactId);
+            if (contact != null) {
+                contact.setContactType(contactType);
+                contact.setValue(value);
+                contact.setDescription(description);
+                session.merge(contact);
+            }
+            
+            tx.commit();
+        } catch (HibernateException e) {
+            if (tx != null) tx.rollback();
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
     }
 }

@@ -2,47 +2,41 @@ package com.project;
 
 import jakarta.persistence.*;
 import java.io.Serializable;
-import java.util.HashSet;
-import java.util.Set;
 
-// Indica que aquesta classe és una entitat JPA que es mapeja a una taula
-@Entity
-// Especifica el nom de la taula a la base de dades
-@Table(name = "contacts")
+@Entity  // Indica que aquesta classe és una entitat JPA
+@Table(name = "contacts")  // Especifica el nom de la taula a la base de dades
 public class Contact implements Serializable {
-
-    // Defineix la clau primària de l'entitat
-    @Id
-    // Indica que el valor de la clau primària es genera automàticament
-    // IDENTITY significa que la base de dades s'encarrega de generar el valor
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    
+    @Id  // Defineix la clau primària
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Autoincrement
     @Column(name = "id")
     private long contactId;
 
-    // Camps bàsics que es mapejaran directament a columnes de la taula
-    private String name;
-    private String email;
+    // Tipus de contacte (EMAIL, PHONE, ADDRESS, etc.)
+    @Column(nullable = false, length = 50)
+    private String contactType;
+    
+    // Valor del contacte (l'email, telèfon o adreça en si)
+    @Column(nullable = false, length = 255)
+    private String value;
+    
+    // Descripció opcional (p.ex. "Telèfon personal", "Email feina", etc.)
+    @Column(length = 255)
+    private String description;
 
-    // Defineix una relació One-To-Many amb Employee
-    // - mappedBy indica que la relació està gestionada per l'atribut "contact" a Employee
-    // - cascade especifica que les operacions s'han de propagar als empleats relacionats
-    // - CascadeType.ALL significa que totes les operacions (PERSIST, MERGE, REMOVE, REFRESH) es propaguen
-    // - fetch configura quan s'han de carregar les dades relacionades
-    // - FetchType.EAGER significa que els empleats es carreguen immediatament amb el contacte
-    @OneToMany(
-        mappedBy = "contact", 
-        cascade = CascadeType.ALL, 
-        fetch = FetchType.EAGER
-    )
-    private Set<Employee> employees = new HashSet<>();
+    // Relació Many-to-One amb Employee (molts contactes poden pertànyer a un empleat)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee;
 
     // Constructor per defecte requerit per JPA
     public Contact() {}
-
-    // Constructor amb paràmetres per crear nous contactes
-    public Contact(String name, String email) {
-        this.name = name;
-        this.email = email;
+    
+    // Constructor amb paràmetres
+    public Contact(String contactType, String value, String description) {
+        this.contactType = contactType;
+        this.value = value;
+        this.description = description;
     }
 
     // Getters i setters
@@ -54,70 +48,46 @@ public class Contact implements Serializable {
         this.contactId = contactId;
     }
 
-    public String getName() {
-        return name;
+    public String getContactType() {
+        return contactType;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setContactType(String contactType) {
+        this.contactType = contactType;
     }
 
-    public String getEmail() {
-        return email;
+    public String getValue() {
+        return value;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setValue(String value) {
+        this.value = value;
     }
 
-    public Set<Employee> getEmployees() {
-        return employees;
+    public String getDescription() {
+        return description;
     }
 
-    public void setEmployees(Set<Employee> employees) {
-        this.employees = employees;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
-    // Mètode d'utilitat per gestionar la relació bidireccional amb Employee
-    // És important mantenir la consistència per ambdós costats de la relació
-    public void addEmployee(Employee employee) {
-        employees.add(employee);
-        employee.setContact(this);
+    public Employee getEmployee() {
+        return employee;
     }
 
-    // Mètode d'utilitat per eliminar la relació bidireccional amb Employee
-    public void removeEmployee(Employee employee) {
-        employees.remove(employee);
-        employee.setContact(null);
+    public void setEmployee(Employee employee) {
+        this.employee = employee;
     }
 
     // Sobreescrivim toString() per facilitar la depuració i visualització
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Contact[id=%d, name='%s', email='%s'", 
-            contactId, name, email));
-        
-        if (employees != null && !employees.isEmpty()) {
-            sb.append(", employees={");
-            boolean first = true;
-            for (Employee emp : employees) {
-                if (!first) {
-                    sb.append(", ");
-                }
-                sb.append(String.format("%s %s (id:%d)", 
-                    emp.getFirstName(), emp.getLastName(), emp.getEmployeeId()));
-                first = false;
-            }
-            sb.append("}");
-        }
-        
-        sb.append("]");
-        return sb.toString();
+        return String.format("Contact[id=%d, type='%s', value='%s', desc='%s']", 
+            contactId, contactType, value, description);
     }
 
     // Sobreescrivim equals() i hashCode() basant-nos en l'ID
-    // És important per al correcte funcionament de col·leccions i comparacions
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
