@@ -5,60 +5,117 @@ import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-@Entity  // Indica que aquesta classe és una entitat JPA
-@Table(name = "employees")  // Especifica el nom de la taula a la base de dades
+/**
+ * Entitat JPA que representa un empleat.
+ * 
+ * @Entity - Marca la classe com una entitat JPA que serà mapejada a una taula
+ *        - Requereix un constructor sense arguments
+ *        - La classe no pot ser final
+ *        - Els camps persistents no poden ser finals
+ *
+ * @Table - Defineix les característiques de la taula:
+ *        - name: nom de la taula a la base de dades
+ *        - Es poden afegir índexs i constraints únics si cal
+ */
+@Entity
+@Table(name = "employees")
 public class Employee implements Serializable {
     
-    @Id  // Defineix la clau primària
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Autoincrement
+    /**
+     * Identificador únic de l'empleat.
+     * @Id - Indica que és la clau primària de l'entitat
+     * @GeneratedValue - Configuració de la generació automàtica de l'ID:
+     *                 - IDENTITY: utilitza autoincrement de la base de dades
+     *                 - Eficient per a la majoria de casos d'ús
+     * @Column - Personalitza la columna a la base de dades
+     */
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private long employeeId;
 
-    // Informació bàsica de l'empleat
+    /**
+     * Informació bàsica de l'empleat.
+     * @Column amb:
+     * - nullable = false: camp obligatori
+     * - length = 100: longitud màxima per optimitzar l'espai
+     */
     @Column(nullable = false, length = 100)
     private String firstName;
     
     @Column(nullable = false, length = 100)
     private String lastName;
     
+    /**
+     * Salari sense anotacions específiques.
+     * - JPA mapeja automàticament els tipus primitius
+     * - Utilitza el tipus de columna adequat (INTEGER en aquest cas)
+     */
     private int salary;
 
-    // Un empleat pot tenir múltiples contactes
-    // - mappedBy indica que la relació està gestionada per l'atribut "employee" a Contact
-    // - cascade especifica que les operacions s'han de propagar als contactes relacionats
-    // - fetch EAGER significa que els contactes es carreguen immediatament amb l'empleat
+    /**
+     * Col·lecció de contactes de l'empleat.
+     * @OneToMany - Defineix una relació un-a-molts:
+     * - mappedBy: indica que Contact és el propietari de la relació
+     * - cascade: especifica quines operacions es propaguen als contactes
+     *   - CascadeType.ALL: inclou PERSIST, MERGE, REMOVE, REFRESH, DETACH
+     * - fetch: estratègia de càrrega
+     *   - EAGER: carrega tots els contactes immediatament
+     * - orphanRemoval: elimina els contactes que es desvinculin
+     */
     @OneToMany(
         mappedBy = "employee", 
         cascade = CascadeType.ALL, 
         fetch = FetchType.EAGER,
-        orphanRemoval = true  // Elimina els contactes que es desvinculin de l'empleat
+        orphanRemoval = true
     )
     private Set<Contact> contacts = new HashSet<>();
 
-    // Relació Many-to-Many amb Project
-    // - cascade especifica quines operacions es propaguen als projectes relacionats
+    /**
+     * Col·lecció de projectes assignats.
+     * @ManyToMany - Defineix una relació molts-a-molts:
+     * - cascade: només PERSIST i MERGE per evitar esborrats en cascada
+     * - fetch EAGER: carrega tots els projectes immediatament
+     *
+     * @JoinTable - Configura la taula intermèdia:
+     * - name: nom de la taula d'unió
+     * - joinColumns: columna que referencia aquesta entitat
+     * - inverseJoinColumns: columna que referencia l'altra entitat
+     */
     @ManyToMany(
         cascade = {CascadeType.PERSIST, CascadeType.MERGE},
         fetch = FetchType.EAGER
     )
     @JoinTable(
-        name = "employee_project",  // Nom de la taula intermèdia
-        joinColumns = @JoinColumn(name = "employee_id"),  // Clau forana a Employee
-        inverseJoinColumns = @JoinColumn(name = "project_id")  // Clau forana a Project
+        name = "employee_project",
+        joinColumns = @JoinColumn(name = "employee_id"),
+        inverseJoinColumns = @JoinColumn(name = "project_id")
     )
     private Set<Project> projects = new HashSet<>();
 
-    // Constructor per defecte requerit per JPA
+    /**
+     * Constructor per defecte.
+     * Requerit per JPA per la creació d'instàncies.
+     */
     public Employee() {}
     
-    // Constructor amb paràmetres
+    /**
+     * Constructor amb paràmetres.
+     * Útil per la creació d'instàncies amb dades inicials.
+     * No inclou ID (generat automàticament) ni col·leccions.
+     */
     public Employee(String firstName, String lastName, int salary) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.salary = salary;
     }
 
-    // Getters i setters
+    /**
+     * Getters i setters per l'ID.
+     * Tot i que l'ID es genera automàticament, aquests mètodes són útils per:
+     * - Accedir a l'ID després de la persistència
+     * - Operacions de merge/update
+     */
     public long getEmployeeId() {
         return employeeId;
     }
@@ -67,6 +124,11 @@ public class Employee implements Serializable {
         this.employeeId = employeeId;
     }
 
+    /**
+     * Getters i setters per les dades bàsiques de l'empleat.
+     * JPA els utilitza per accedir i modificar els camps
+     * durant les operacions de persistència.
+     */
     public String getFirstName() {
         return firstName;
     }
@@ -91,6 +153,13 @@ public class Employee implements Serializable {
         this.salary = salary;
     }
 
+    /**
+     * Getters i setters per la col·lecció de contactes.
+     * Important:
+     * - getContacts() retorna la col·lecció directament
+     * - setContacts() s'ha d'utilitzar amb cura per mantenir 
+     *   la consistència bidireccional
+     */
     public Set<Contact> getContacts() {
         return contacts;
     }
@@ -99,6 +168,11 @@ public class Employee implements Serializable {
         this.contacts = contacts;
     }
 
+    /**
+     * Getters i setters per la col·lecció de projectes.
+     * Similar a contacts, cal anar amb compte amb la
+     * consistència bidireccional quan es modifica la col·lecció.
+     */
     public Set<Project> getProjects() {
         return projects;
     }
@@ -107,7 +181,10 @@ public class Employee implements Serializable {
         this.projects = projects;
     }
 
-    // Mètodes d'utilitat per gestionar contactes
+    /**
+     * Mètodes d'utilitat per gestionar la relació bidireccional amb Contact.
+     * Important mantenir la consistència per ambdós costats de la relació.
+     */
     public void addContact(Contact contact) {
         contacts.add(contact);
         contact.setEmployee(this);
@@ -118,7 +195,10 @@ public class Employee implements Serializable {
         contact.setEmployee(null);
     }
 
-    // Mètodes d'utilitat per gestionar projectes
+    /**
+     * Mètodes d'utilitat per gestionar la relació bidireccional amb Project.
+     * En relacions ManyToMany, cal mantenir la consistència per ambdós costats.
+     */
     public void addProject(Project project) {
         projects.add(project);
         project.getEmployees().add(this);
@@ -129,13 +209,18 @@ public class Employee implements Serializable {
         project.getEmployees().remove(this);
     }
 
-    // Sobreescrivim toString() per facilitar la depuració i visualització
+    /**
+     * toString() modificat per mostrar les relacions.
+     * Cal anar amb compte amb les relacions bidireccionals
+     * per evitar crides recursives infinites.
+     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("Employee[id=%d, name='%s %s', salary=%d", 
             employeeId, firstName, lastName, salary));
             
+        // Mostrem els contactes sense accedir a les seves relacions inverses
         if (!contacts.isEmpty()) {
             sb.append(", contacts={");
             boolean first = true;
@@ -147,6 +232,7 @@ public class Employee implements Serializable {
             sb.append("}");
         }
         
+        // Mostrem els projectes sense accedir a les seves relacions inverses
         if (!projects.isEmpty()) {
             sb.append(", projects={");
             boolean first = true;
@@ -162,7 +248,13 @@ public class Employee implements Serializable {
         return sb.toString();
     }
 
-    // Sobreescrivim equals() i hashCode() basant-nos en l'ID
+    /**
+     * equals() i hashCode() basats en l'ID.
+     * Important per:
+     * - Consistència en col·leccions
+     * - Comparacions d'entitats
+     * - Operacions de persistència
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

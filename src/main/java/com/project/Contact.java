@@ -3,36 +3,88 @@ package com.project;
 import jakarta.persistence.*;
 import java.io.Serializable;
 
-@Entity  // Indica que aquesta classe és una entitat JPA
-@Table(name = "contacts")  // Especifica el nom de la taula a la base de dades
+/**
+ * Entitat JPA que representa una dada de contacte d'un empleat.
+ * 
+ * @Entity - Marca la classe com una entitat JPA
+ *        - Requereix un constructor sense arguments
+ *        - La classe no pot ser final
+ *        - Els atributs persistents no poden ser finals
+ *
+ * @Table - Especifica els detalls de la taula a la base de dades
+ *        - name: nom de la taula (si és diferent del nom de la classe)
+ *        - schema: esquema de la base de dades (opcional)
+ *        - catalog: catàleg de la base de dades (opcional)
+ */
+@Entity  
+@Table(name = "contacts")  
 public class Contact implements Serializable {
     
-    @Id  // Defineix la clau primària
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Autoincrement
+    /**
+     * Identificador únic del contacte.
+     * @Id - Marca aquest camp com la clau primària
+     * @GeneratedValue - Especifica com es genera el valor:
+     *                 - IDENTITY: autoincrement gestionat per la base de dades
+     *                 - Altres opcions: SEQUENCE, TABLE, AUTO
+     * @Column - Personalitza la columna a la base de dades:
+     *        - name: nom de la columna
+     *        - altres propietats disponibles: unique, nullable, length, etc.
+     */
+    @Id  
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  
     @Column(name = "id")
     private long contactId;
 
-    // Tipus de contacte (EMAIL, PHONE, ADDRESS, etc.)
+    /**
+     * Tipus de contacte (EMAIL, PHONE, ADDRESS, etc.).
+     * @Column amb:
+     * - nullable = false: la columna NO pot ser NULL
+     * - length = 50: longitud màxima de 50 caràcters
+     * És important definir la longitud per optimitzar l'espai en bases de dades
+     */
     @Column(nullable = false, length = 50)
     private String contactType;
     
-    // Valor del contacte (l'email, telèfon o adreça en si)
+    /**
+     * Valor del contacte (l'email, telèfon o adreça).
+     * Similar a contactType, però amb més longitud per permetre
+     * valors més llargs com adreces o URLs.
+     */
     @Column(nullable = false, length = 255)
     private String value;
     
-    // Descripció opcional (p.ex. "Telèfon personal", "Email feina", etc.)
+    /**
+     * Descripció opcional del contacte.
+     * Permet NULL ja que no tots els contactes necessiten descripció.
+     */
     @Column(length = 255)
     private String description;
 
-    // Relació Many-to-One amb Employee (molts contactes poden pertànyer a un empleat)
+    /**
+     * Relació amb l'empleat propietari d'aquest contacte.
+     * @ManyToOne - Defineix una relació molts-a-un amb Employee:
+     *            - Molts contactes poden pertànyer a un empleat
+     *            - fetch = EAGER: carrega la relació immediatament
+     *
+     * @JoinColumn - Especifica la columna de clau forana:
+     *             - name: nom de la columna a la base de dades
+     *             - nullable = false: un contacte sempre ha de tenir un empleat
+     */
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    // Constructor per defecte requerit per JPA
+    /**
+     * Constructor per defecte.
+     * Requerit per JPA per crear instàncies de l'entitat.
+     */
     public Contact() {}
     
-    // Constructor amb paràmetres
+    /**
+     * Constructor amb paràmetres.
+     * No inclou l'ID ja que es genera automàticament.
+     * No inclou employee ja que es configura després mitjançant la relació.
+     */
     public Contact(String contactType, String value, String description) {
         this.contactType = contactType;
         this.value = value;
@@ -40,6 +92,11 @@ public class Contact implements Serializable {
     }
 
     // Getters i setters
+    /**
+     * Els getters i setters són necessaris per JPA.
+     * JPA els utilitza per accedir i modificar els camps
+     * fins i tot quan són privats.
+     */
     public long getContactId() {
         return contactId;
     }
@@ -80,14 +137,24 @@ public class Contact implements Serializable {
         this.employee = employee;
     }
 
-    // Sobreescrivim toString() per facilitar la depuració i visualització
+    /**
+     * Sobreescrivim toString() per facilitar la depuració.
+     * Important no incloure relacions per evitar cicles infinits.
+     */
     @Override
     public String toString() {
         return String.format("Contact[id=%d, type='%s', value='%s', desc='%s']", 
             contactId, contactType, value, description);
     }
 
-    // Sobreescrivim equals() i hashCode() basant-nos en l'ID
+    /**
+     * Sobreescrivim equals() basat en l'ID.
+     * Important per:
+     * - Col·leccions (HashSet, HashMap)
+     * - Comparacions d'entitats
+     * - Cerques en col·leccions
+     * No utilitzem altres camps per evitar inconsistències
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -96,6 +163,11 @@ public class Contact implements Serializable {
         return contactId == contact.contactId;
     }
 
+    /**
+     * Sobreescrivim hashCode() basat en l'ID.
+     * Ha de ser consistent amb equals().
+     * Important per col·leccions basades en hash.
+     */
     @Override
     public int hashCode() {
         return Long.hashCode(contactId);
