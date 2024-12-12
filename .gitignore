@@ -35,3 +35,5 @@ target/maven-status
 
 .vscode
 data/*.db
+
+logs/*
