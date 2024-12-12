@@ -1,4 +1,4 @@
-package com.project.utils;
+package com.project.sqliteutils;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

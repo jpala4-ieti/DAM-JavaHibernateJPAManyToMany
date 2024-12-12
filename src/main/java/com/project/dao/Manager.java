@@ -1,4 +1,4 @@
-package com.project;
+package com.project.dao;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,6 +16,10 @@ import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.query.NativeQuery;
+
+import com.project.domain.Contact;
+import com.project.domain.Employee;
+import com.project.domain.Project;
 
 /**
  * Gestor principal per les operacions amb la base de dades utilitzant Hibernate/JPA.
