@@ -1,4 +1,4 @@
-# Exemple JPA Many To Many #
+# Exemple Hibernate JPA Many To Many #
 
 Organització del projecte
 
@@ -20,6 +20,8 @@ Cal el 'Maven' per compilar el projecte
 ```bash
 mvn clean
 mvn compile
+mvn test
+mvn package
 ```
 
 Per executar el projecte a Windows cal
