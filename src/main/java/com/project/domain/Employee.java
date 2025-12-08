@@ -3,42 +3,36 @@ package com.project.domain;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
  * Entitat JPA que representa un empleat.
  * 
- * @Entity - Marca la classe com una entitat JPA que serà mapejada a una taula
- *        - Requereix un constructor sense arguments
- *        - La classe no pot ser final
- *        - Els camps persistents no poden ser finals
- *
- * @Table - Defineix les característiques de la taula:
- *        - name: nom de la taula a la base de dades
- *        - Es poden afegir índexs i constraints únics si cal
+ * CONCEPTES CLAU D'AQUESTA ENTITAT:
+ * - És el costat "propietari" de la relació ManyToMany amb Project (té @JoinTable)
+ * - És el costat "invers" de la relació OneToMany amb Contact (té mappedBy a Contact)
+ * - Implements Serializable: Necessari per JPA/cache de segon nivell
  */
 @Entity
 @Table(name = "employees")
 public class Employee implements Serializable {
     
+    // Constant per serialització
+    private static final long serialVersionUID = 1L;
+    
     /**
-     * Identificador únic de l'empleat.
-     * @Id - Indica que és la clau primària de l'entitat
-     * @GeneratedValue - Configuració de la generació automàtica de l'ID:
-     *                 - IDENTITY: utilitza autoincrement de la base de dades
-     *                 - Eficient per a la majoria de casos d'ús
-     * @Column - Personalitza la columna a la base de dades
+     * Clau primària amb generació automàtica.
+     * Utilitzem Long (objecte) per detectar entitats noves (null abans de persistir).
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private long employeeId;
+    private Long employeeId;  // CANVIAT: de long a Long
 
     /**
-     * Informació bàsica de l'empleat.
-     * @Column amb:
-     * - nullable = false: camp obligatori
-     * - length = 100: longitud màxima per optimitzar l'espai
+     * Dades bàsiques de l'empleat.
+     * nullable = false: camps obligatoris a nivell de BD (NOT NULL constraint)
      */
     @Column(nullable = false, length = 100)
     private String firstName;
@@ -48,61 +42,66 @@ public class Employee implements Serializable {
     
     /**
      * Salari sense anotacions específiques.
-     * - JPA mapeja automàticament els tipus primitius
-     * - Utilitza el tipus de columna adequat (INTEGER en aquest cas)
+     * JPA mapeja automàticament int a INTEGER.
      */
     private int salary;
 
     /**
-     * Col·lecció de contactes de l'empleat.
-     * @OneToMany - Defineix una relació un-a-molts:
-     * - mappedBy: indica que Contact és el propietari de la relació
-     * - cascade: especifica quines operacions es propaguen als contactes
-     *   - CascadeType.ALL: inclou PERSIST, MERGE, REMOVE, REFRESH, DETACH
-     * - fetch: estratègia de càrrega
-     *   - EAGER: carrega tots els contactes immediatament
-     * - orphanRemoval: elimina els contactes que es desvinculin
+     * RELACIÓ ONE-TO-MANY AMB CONTACT
+     * 
+     * @OneToMany: Un empleat té MOLTS contactes
+     *   - mappedBy = "employee": Indica que Contact.employee és la FK (Contact és propietari)
+     *   - cascade = CascadeType.ALL: Totes les operacions es propaguen als contactes
+     *     (PERSIST, MERGE, REMOVE, REFRESH, DETACH)
+     *   - fetch = FetchType.LAZY: RECOMANAT! Carrega contactes només quan s'accedeixen
+     *   - orphanRemoval = true: Si un Contact es treu del Set, s'elimina de la BD
+     *     (Un Contact sense Employee no té sentit en aquest model)
+     * 
+     * IMPORTANT: Inicialitzar sempre les col·leccions per evitar NullPointerException
      */
     @OneToMany(
-        mappedBy = "employee", 
-        cascade = CascadeType.ALL, 
-        fetch = FetchType.EAGER,
-        orphanRemoval = true
+        mappedBy = "employee",        // Contact és el propietari (té la FK)
+        cascade = CascadeType.ALL,    // Operacions en cascada
+        fetch = FetchType.LAZY,       // CANVIAT: de EAGER a LAZY per rendiment
+        orphanRemoval = true          // Elimina contactes orfes
     )
     private Set<Contact> contacts = new HashSet<>();
 
     /**
-     * Col·lecció de projectes assignats.
-     * @ManyToMany - Defineix una relació molts-a-molts:
-     * - cascade: només PERSIST i MERGE per evitar esborrats en cascada
-     * - fetch EAGER: carrega tots els projectes immediatament
-     *
-     * @JoinTable - Configura la taula intermèdia:
-     * - name: nom de la taula d'unió
-     * - joinColumns: columna que referencia aquesta entitat
-     * - inverseJoinColumns: columna que referencia l'altra entitat
+     * RELACIÓ MANY-TO-MANY AMB PROJECT
+     * 
+     * @ManyToMany: Molts empleats treballen en MOLTS projectes
+     *   - cascade: Només PERSIST i MERGE (MAI REMOVE en ManyToMany!)
+     *     Si eliminem un empleat, NO volem eliminar els projectes
+     *   - fetch = FetchType.LAZY: RECOMANAT per rendiment
+     * 
+     * @JoinTable: Defineix la TAULA INTERMÈDIA per la relació N:M
+     *   - name = "employee_project": Nom de la taula pont
+     *   - joinColumns: Columna que referencia AQUESTA entitat (Employee)
+     *   - inverseJoinColumns: Columna que referencia l'ALTRA entitat (Project)
+     * 
+     * Employee és el PROPIETARI de la relació perquè defineix @JoinTable.
+     * Project tindrà mappedBy = "projects".
      */
     @ManyToMany(
-        cascade = {CascadeType.PERSIST, CascadeType.MERGE},
-        fetch = FetchType.EAGER
+        cascade = {CascadeType.PERSIST, CascadeType.MERGE},  // MAI CascadeType.REMOVE!
+        fetch = FetchType.LAZY  // CANVIAT: de EAGER a LAZY
     )
     @JoinTable(
-        name = "employee_project",
-        joinColumns = @JoinColumn(name = "employee_id"),
-        inverseJoinColumns = @JoinColumn(name = "project_id")
+        name = "employee_project",                           // Taula intermèdia
+        joinColumns = @JoinColumn(name = "employee_id"),     // FK a employees
+        inverseJoinColumns = @JoinColumn(name = "project_id") // FK a projects
     )
     private Set<Project> projects = new HashSet<>();
 
     /**
-     * Constructor per defecte.
-     * Requerit per JPA per la creació d'instàncies.
+     * Constructor per defecte - OBLIGATORI per JPA.
      */
     public Employee() {}
     
     /**
-     * Constructor amb paràmetres.
-     * Útil per la creació d'instàncies amb dades inicials.
-     * No inclou ID (generat automàticament) ni col·leccions.
+     * Constructor amb paràmetres bàsics.
+     * No inclou ID (generat) ni col·leccions (s'afegeixen després).
      */
     public Employee(String firstName, String lastName, int salary) {
         this.firstName = firstName;
@@ -110,25 +109,16 @@ public class Employee implements Serializable {
         this.salary = salary;
     }
 
-    /**
-     * Getters i setters per l'ID.
-     * Tot i que l'ID es genera automàticament, aquests mètodes són útils per:
-     * - Accedir a l'ID després de la persistència
-     * - Operacions de merge/update
-     */
-    public long getEmployeeId() {
+    // ===================== GETTERS I SETTERS =====================
+    
+    public Long getEmployeeId() {  // CANVIAT: retorna Long
         return employeeId;
     }
 
-    public void setEmployeeId(long employeeId) {
+    public void setEmployeeId(Long employeeId) {  // CANVIAT: rep Long
         this.employeeId = employeeId;
     }
 
-    /**
-     * Getters i setters per les dades bàsiques de l'empleat.
-     * JPA els utilitza per accedir i modificar els camps
-     * durant les operacions de persistència.
-     */
     public String getFirstName() {
         return firstName;
     }
@@ -153,13 +143,6 @@ public class Employee implements Serializable {
         this.salary = salary;
     }
 
-    /**
-     * Getters i setters per la col·lecció de contactes.
-     * Important:
-     * - getContacts() retorna la col·lecció directament
-     * - setContacts() s'ha d'utilitzar amb cura per mantenir 
-     *   la consistència bidireccional
-     */
     public Set<Contact> getContacts() {
         return contacts;
     }
@@ -168,11 +151,6 @@ public class Employee implements Serializable {
         this.contacts = contacts;
     }
 
-    /**
-     * Getters i setters per la col·lecció de projectes.
-     * Similar a contacts, cal anar amb compte amb la
-     * consistència bidireccional quan es modifica la col·lecció.
-     */
     public Set<Project> getProjects() {
         return projects;
     }
@@ -181,38 +159,51 @@ public class Employee implements Serializable {
         this.projects = projects;
     }
 
+    // ===================== MÈTODES DE GESTIÓ DE RELACIONS =====================
+    
     /**
-     * Mètodes d'utilitat per gestionar la relació bidireccional amb Contact.
-     * Important mantenir la consistència per ambdós costats de la relació.
+     * MÈTODES HELPER PER MANTENIR LA CONSISTÈNCIA BIDIRECCIONAL
+     * 
+     * IMPORTANT: En relacions bidireccionals, sempre hem d'actualitzar AMBDÓS costats!
+     * Si només afegim el Contact al Set però no fem contact.setEmployee(this),
+     * la relació no es persistirà correctament.
+     */
+    
+    /**
+     * Afegeix un contacte i manté la consistència bidireccional.
      */
     public void addContact(Contact contact) {
         contacts.add(contact);
-        contact.setEmployee(this);
-    }
-
-    public void removeContact(Contact contact) {
-        contacts.remove(contact);
-        contact.setEmployee(null);
+        contact.setEmployee(this);  // CRÍTIC: Actualitzar l'altre costat!
     }
 
     /**
-     * Mètodes d'utilitat per gestionar la relació bidireccional amb Project.
-     * En relacions ManyToMany, cal mantenir la consistència per ambdós costats.
+     * Elimina un contacte i trenca la relació bidireccional.
+     * Amb orphanRemoval=true, el Contact s'eliminarà de la BD.
+     */
+    public void removeContact(Contact contact) {
+        contacts.remove(contact);
+        contact.setEmployee(null);  // CRÍTIC: Trencar la relació!
+    }
+
+    /**
+     * Afegeix un projecte i manté la consistència bidireccional ManyToMany.
      */
     public void addProject(Project project) {
         projects.add(project);
-        project.getEmployees().add(this);
-    }
-
-    public void removeProject(Project project) {
-        projects.remove(project);
-        project.getEmployees().remove(this);
+        project.getEmployees().add(this);  // CRÍTIC: Actualitzar l'altre costat!
     }
 
     /**
-     * toString() modificat per mostrar les relacions.
-     * Cal anar amb compte amb les relacions bidireccionals
-     * per evitar crides recursives infinites.
+     * Elimina un projecte i trenca la relació bidireccional.
+     */
+    public void removeProject(Project project) {
+        projects.remove(project);
+        project.getEmployees().remove(this);  // CRÍTIC: Trencar la relació!
+    }
+
+    /**
+     * toString() amb gestió de relacions per evitar recursió infinita.
      */
     @Override
     public String toString() {
@@ -220,8 +211,8 @@ public class Employee implements Serializable {
         sb.append(String.format("Employee[id=%d, name='%s %s', salary=%d", 
             employeeId, firstName, lastName, salary));
             
-        // Mostrem els contactes sense accedir a les seves relacions inverses
-        if (!contacts.isEmpty()) {
+        // Mostrem només informació bàsica dels contactes
+        if (contacts != null && !contacts.isEmpty()) {
             sb.append(", contacts={");
             boolean first = true;
             for (Contact c : contacts) {
@@ -232,13 +223,13 @@ public class Employee implements Serializable {
             sb.append("}");
         }
         
-        // Mostrem els projectes sense accedir a les seves relacions inverses
-        if (!projects.isEmpty()) {
+        // Mostrem només noms dels projectes (NO accedir a employees!)
+        if (projects != null && !projects.isEmpty()) {
             sb.append(", projects={");
             boolean first = true;
             for (Project p : projects) {
                 if (!first) sb.append(", ");
-                sb.append(p.getName());
+                sb.append(p.getName());  // Només el nom, NO p.getEmployees()!
                 first = false;
             }
             sb.append("}");
@@ -249,22 +240,30 @@ public class Employee implements Serializable {
     }
 
     /**
-     * equals() i hashCode() basats en l'ID.
-     * Important per:
-     * - Consistència en col·leccions
-     * - Comparacions d'entitats
-     * - Operacions de persistència
+     * EQUALS/HASHCODE - CORREGIT
+     * 
+     * Utilitzem firstName + lastName com a identificador de negoci.
+     * Alternativament, es podria generar un UUID al constructor.
      */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Employee employee = (Employee) o;
-        return employeeId == employee.employeeId;
+        
+        // Si ambdós tenen ID, comparem per ID
+        if (this.employeeId != null && employee.employeeId != null) {
+            return Objects.equals(employeeId, employee.employeeId);
+        }
+        
+        // Si no, comparem per identificador de negoci
+        return Objects.equals(firstName, employee.firstName) &&
+               Objects.equals(lastName, employee.lastName);
     }
 
     @Override
     public int hashCode() {
-        return Long.hashCode(employeeId);
+        // Utilitzem camps de negoci que no canvien
+        return Objects.hash(firstName, lastName);
     }
 }

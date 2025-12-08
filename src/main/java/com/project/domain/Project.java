@@ -3,71 +3,74 @@ package com.project.domain;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
  * Entitat JPA que representa un projecte.
- * Implementa Serializable per permetre la serialització de l'entitat,
- * necessari per determinades operacions de JPA i per cache.
+ * 
+ * CONCEPTES CLAU:
+ * - És el costat INVERS de la relació ManyToMany amb Employee (té mappedBy)
+ * - Employee és el propietari perquè defineix @JoinTable
  */
 @Entity
 @Table(name = "projects")
 public class Project implements Serializable {
 
-    /**
-     * Clau primària del projecte.
-     * - @Id marca aquest camp com la clau primària
-     * - @GeneratedValue configura la generació automàtica d'IDs
-     * - strategy = IDENTITY delega la generació a la base de dades
-     */
+    private static final long serialVersionUID = 1L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private long projectId;
+    private Long projectId;  // CANVIAT: de long a Long
 
     /**
      * Nom del projecte.
-     * JPA mapeja automàticament aquesta propietat com una columna
-     * amb el mateix nom que l'atribut.
+     * Sense @Column explícit, JPA crea una columna "name" automàticament.
      */
+    @Column(nullable = false, length = 100)  // AFEGIT: constraints
     private String name;
 
     /**
      * Descripció detallada del projecte.
-     * JPA crea una columna 'description' per defecte.
      */
+    @Column(length = 500)  // AFEGIT: limit de longitud
     private String description;
     
     /**
-     * Estat actual del projecte.
-     * @Column permet especificar propietats de la columna:
-     * - name: nom personalitzat a la base de dades
-     * - length: longitud màxima per al camp String
+     * Estat del projecte.
+     * Podria ser un ENUM per major seguretat de tipus.
      */
     @Column(name = "status", length = 20)
-    private String status;  // Ex: "ACTIU", "COMPLETAT", "EN_ESPERA"
+    private String status;  // Ex: "ACTIU", "COMPLETAT", "PLANIFICAT"
 
     /**
-     * Relació bidireccional Many-to-Many amb Employee.
-     * - mappedBy indica que Employee és el propietari de la relació
-     * - fetch EAGER carrega sempre els empleats amb el projecte
-     * La col·lecció s'inicialitza per evitar NullPointerException
+     * RELACIÓ MANY-TO-MANY INVERSA AMB EMPLOYEE
+     * 
+     * @ManyToMany:
+     *   - mappedBy = "projects": Indica que Employee.projects és el propietari
+     *     (Employee té el @JoinTable, per tant controla la relació)
+     *   - fetch = LAZY: RECOMANAT per rendiment
+     * 
+     * NO POSAR CASCADE aquí! El propietari (Employee) ja ho gestiona.
+     * Si posem cascade aquí, podríem tenir comportaments inesperats.
+     * 
+     * IMPORTANT: Aquest costat NO pot afegir/eliminar relacions directament a BD.
+     * Cal fer-ho sempre des del costat propietari (Employee).
      */
     @ManyToMany(
-        mappedBy = "projects",
-        fetch = FetchType.EAGER
+        mappedBy = "projects",     // Employee és el propietari
+        fetch = FetchType.LAZY     // CANVIAT: de EAGER a LAZY
     )
     private Set<Employee> employees = new HashSet<>();
 
     /**
-     * Constructor per defecte.
-     * Requerit per JPA per instanciar l'entitat.
+     * Constructor per defecte - OBLIGATORI per JPA.
      */
     public Project() {}
 
     /**
-     * Constructor amb els camps bàsics.
-     * No inclou l'ID (generat automàticament) ni col·leccions.
+     * Constructor amb camps bàsics.
      */
     public Project(String name, String description, String status) {
         this.name = name;
@@ -75,20 +78,16 @@ public class Project implements Serializable {
         this.status = status;
     }
 
-    /**
-     * Getters i setters per l'ID del projecte.
-     */
-    public long getProjectId() {
+    // ===================== GETTERS I SETTERS =====================
+    
+    public Long getProjectId() {  // CANVIAT: retorna Long
         return projectId;
     }
 
-    public void setProjectId(long projectId) {
+    public void setProjectId(Long projectId) {  // CANVIAT: rep Long
         this.projectId = projectId;
     }
 
-    /**
-     * Getters i setters per les propietats bàsiques.
-     */
     public String getName() {
         return name;
     }
@@ -113,9 +112,6 @@ public class Project implements Serializable {
         this.status = status;
     }
 
-    /**
-     * Getters i setters per la col·lecció d'empleats.
-     */
     public Set<Employee> getEmployees() {
         return employees;
     }
@@ -124,10 +120,15 @@ public class Project implements Serializable {
         this.employees = employees;
     }
 
+    // ===================== MÈTODES HELPER =====================
+    
     /**
-     * Mètode per afegir un empleat al projecte.
-     * Manté la consistència bidireccional actualitzant ambdós costats
-     * de la relació.
+     * Afegeix un empleat al projecte.
+     * 
+     * NOTA IMPORTANT: Com Project és el costat INVERS (mappedBy),
+     * per persistir la relació correctament, cal fer-ho des de Employee!
+     * Aquest mètode és útil per mantenir consistència en memòria,
+     * però la persistència real la fa Employee.addProject().
      */
     public void addEmployee(Employee employee) {
         employees.add(employee);
@@ -135,9 +136,7 @@ public class Project implements Serializable {
     }
 
     /**
-     * Mètode per eliminar un empleat del projecte.
-     * Manté la consistència bidireccional eliminant la relació
-     * per ambdós costats.
+     * Elimina un empleat del projecte.
      */
     public void removeEmployee(Employee employee) {
         employees.remove(employee);
@@ -145,33 +144,25 @@ public class Project implements Serializable {
     }
 
     /**
-     * Comprova si un empleat està assignat al projecte.
-     * Útil per validacions abans d'operacions amb empleats.
+     * Comprova si un empleat està assignat.
      */
     public boolean hasEmployee(Employee employee) {
         return employees.contains(employee);
     }
 
-    /**
-     * Genera una representació en String del projecte.
-     * Inclou informació bàsica i la llista d'empleats assignats.
-     * Evita recursió infinita no accedint a les relacions inverses.
-     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("Project[id=%d, name='%s', status='%s'", 
             projectId, name, status));
         
+        // Només mostrem IDs dels empleats per evitar recursió
         if (employees != null && !employees.isEmpty()) {
             sb.append(", employees={");
             boolean first = true;
             for (Employee emp : employees) {
-                if (!first) {
-                    sb.append(", ");
-                }
-                sb.append(String.format("%s %s (id:%d)", 
-                    emp.getFirstName(), emp.getLastName(), emp.getEmployeeId()));
+                if (!first) sb.append(", ");
+                sb.append(String.format("%s %s", emp.getFirstName(), emp.getLastName()));
                 first = false;
             }
             sb.append("}");
@@ -181,25 +172,22 @@ public class Project implements Serializable {
         return sb.toString();
     }
 
-    /**
-     * Implementació d'equals basada en l'ID.
-     * Necessari per al correcte funcionament en col·leccions
-     * i comparacions d'entitats.
-     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Project project = (Project) o;
-        return projectId == project.projectId;
+        
+        if (this.projectId != null && project.projectId != null) {
+            return Objects.equals(projectId, project.projectId);
+        }
+        
+        // Identificador de negoci: nom del projecte (hauria de ser únic)
+        return Objects.equals(name, project.name);
     }
 
-    /**
-     * Implementació de hashCode basada en l'ID.
-     * Ha de ser consistent amb equals.
-     */
     @Override
     public int hashCode() {
-        return Long.hashCode(projectId);
+        return Objects.hash(name);
     }
 }
