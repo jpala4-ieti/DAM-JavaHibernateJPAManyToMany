@@ -277,7 +277,7 @@ class ManagerProjectTest extends HibernateTestBase {
         @DisplayName("listCollection retorna buit si no hi ha projectes")
         void listCollection_SenseProjectes_RetornaBuit() {
             // ARRANGE
-            Manager.delete(Project.class, projecteProva.getProjectId());
+            Manager.deleteProject(projecteProva.getProjectId());
             
             // ACT
             Collection<Project> resultat = Manager.listCollection(Project.class);
@@ -514,7 +514,7 @@ class ManagerProjectTest extends HibernateTestBase {
         @DisplayName("delete amb ID inexistent no falla")
         void delete_IdInexistent_NoFalla() {
             assertDoesNotThrow(() -> {
-                Manager.delete(Project.class, 99999L);
+                Manager.deleteProject(99999L);
             });
         }
         
@@ -529,7 +529,7 @@ class ManagerProjectTest extends HibernateTestBase {
             int comptadorInicial = comptarEntitats(Project.class);
             
             // ACT
-            Manager.delete(Project.class, projecteAEliminar.getProjectId());
+            Manager.deleteProject(projecteAEliminar.getProjectId());
             
             // ASSERT
             assertEquals(comptadorInicial - 1, comptarEntitats(Project.class));

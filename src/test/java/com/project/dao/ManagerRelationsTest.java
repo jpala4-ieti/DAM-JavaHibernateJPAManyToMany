@@ -103,7 +103,7 @@ class ManagerRelationsTest extends HibernateTestBase {
             assertEquals(2, comptarEntitats(Contact.class));
             
             // ACT
-            Manager.delete(Employee.class, empleat.getEmployeeId());
+            Manager.deleteEmployee(empleat.getEmployeeId());
             
             // ASSERT - Tots els contactes eliminats
             assertEquals(0, comptarEntitats(Contact.class));
@@ -265,7 +265,7 @@ class ManagerRelationsTest extends HibernateTestBase {
             Long proj2Id = projecte2.getProjectId();
             
             // ACT
-            Manager.delete(Employee.class, empleat1.getEmployeeId());
+            Manager.deleteEmployee(empleat1.getEmployeeId());
             
             // ASSERT - Els projectes continuen existint
             assertAll(
@@ -401,7 +401,7 @@ class ManagerRelationsTest extends HibernateTestBase {
             Long projId = proj.getProjectId();
             
             // ACT
-            Manager.delete(Employee.class, empId);
+            Manager.deleteEmployee(empId);
             
             // ASSERT
             assertAll(
@@ -438,7 +438,7 @@ class ManagerRelationsTest extends HibernateTestBase {
             Manager.updateEmployeeProjects(emp3.getEmployeeId(), Set.of(p2));
             
             // ACT - Operacions diverses
-            Manager.delete(Employee.class, emp1.getEmployeeId()); // Elimina amb relacions
+            Manager.deleteEmployee(emp1.getEmployeeId()); // Elimina amb relacions
             Manager.updateEmployee(emp2.getEmployeeId(), "E2Updated", "T", 45000);
             Manager.addContactToEmployee(emp3.getEmployeeId(), "PHONE", "666", "T");
             

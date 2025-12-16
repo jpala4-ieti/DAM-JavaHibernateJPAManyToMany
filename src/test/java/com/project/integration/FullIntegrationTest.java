@@ -381,7 +381,7 @@ class FullIntegrationTest extends HibernateTestBase {
             Manager.updateProject(proj.getProjectId(), "Modified Project", "New Desc", "COMPLETAT");
             
             // DELETE
-            Manager.delete(Employee.class, emp3.getEmployeeId());
+            Manager.deleteEmployee(emp3.getEmployeeId());
             
             // VERIFY CONSISTENCY
             assertAll("Verificar consistència",

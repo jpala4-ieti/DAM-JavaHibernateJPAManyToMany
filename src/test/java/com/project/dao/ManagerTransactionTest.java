@@ -331,7 +331,7 @@ class ManagerTransactionTest extends HibernateTestBase {
             Employee e3 = Manager.addEmployee("E3", "T", 30000);
             assertEquals(empleatsInicial + 3, comptarEntitats(Employee.class));
             
-            Manager.delete(Employee.class, e3.getEmployeeId());
+            Manager.deleteEmployee(e3.getEmployeeId());
             assertEquals(empleatsInicial + 2, comptarEntitats(Employee.class));
         }
         
@@ -370,7 +370,7 @@ class ManagerTransactionTest extends HibernateTestBase {
             assertEquals(2, comptarEntitats(Contact.class));
             
             // ACT
-            Manager.delete(Employee.class, emp.getEmployeeId());
+            Manager.deleteEmployee(emp.getEmployeeId());
             
             // ASSERT - No queden contactes orfes
             assertEquals(0, comptarEntitats(Contact.class), 
@@ -426,7 +426,7 @@ class ManagerTransactionTest extends HibernateTestBase {
             
             // ACT - Operacions amb IDs que no existeixen
             Manager.updateEmployee(99999L, "Nou", "Nom", 50000);
-            Manager.delete(Employee.class, 99998L);
+            Manager.deleteEmployee(99998L);
             Manager.addContactToEmployee(99997L, "EMAIL", "a@a.com", "T");
             
             // ASSERT - Les dades originals no s'han afectat

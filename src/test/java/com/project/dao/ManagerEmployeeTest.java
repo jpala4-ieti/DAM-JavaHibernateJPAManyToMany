@@ -274,7 +274,7 @@ class ManagerEmployeeTest extends HibernateTestBase {
         @DisplayName("listCollection retorna col·lecció buida si no hi ha dades")
         void listCollection_SenseEmpleats_RetornaBuit() {
             // ARRANGE - Eliminar l'empleat de prova
-            Manager.delete(Employee.class, empleatProva.getEmployeeId());
+            Manager.deleteEmployee(empleatProva.getEmployeeId());
             
             // ACT
             Collection<Employee> resultat = Manager.listCollection(Employee.class);
@@ -527,7 +527,7 @@ class ManagerEmployeeTest extends HibernateTestBase {
         @DisplayName("delete amb ID inexistent no llança excepció")
         void delete_IdInexistent_NoFalla() {
             assertDoesNotThrow(() -> {
-                Manager.delete(Employee.class, 99999L);
+                Manager.deleteEmployee(99999L);
             }, "No hauria de llançar excepció per ID inexistent");
         }
         

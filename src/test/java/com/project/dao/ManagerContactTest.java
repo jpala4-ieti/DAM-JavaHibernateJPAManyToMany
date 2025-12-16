@@ -577,7 +577,7 @@ class ManagerContactTest extends HibernateTestBase {
             int comptadorInicial = comptarEntitats(Contact.class);
             
             // ACT - Eliminar l'empleat (hauria d'eliminar contactes en cascada)
-            Manager.delete(Employee.class, empleat.getEmployeeId());
+            Manager.deleteEmployee(empleat.getEmployeeId());
             
             // ASSERT - Tots els contactes de l'empleat haurien d'estar eliminats
             assertEquals(0, comptarEntitats(Contact.class),
