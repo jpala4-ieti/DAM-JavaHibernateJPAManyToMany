@@ -542,6 +542,59 @@ public class Manager {
     }
 
     /**
+     * Elimina un projecte, desvinculant primer tots els empleats.
+     * Gestiona automàticament la taula pont employee_project.
+     */
+    public static void deleteProject(long projectId) {
+        try (Session session = factory.openSession()) {
+            Transaction tx = session.beginTransaction();
+            try {
+                Project project = session.get(Project.class, projectId);
+                if (project != null) {
+                    // IMPORTANT: Desvincullar tots els empleats primer
+                    for (Employee emp : Set.copyOf(project.getEmployees())) {
+                        emp.removeProject(project);
+                        session.merge(emp);
+                    }
+                    session.remove(project);
+                    logger.info("Projecte eliminat amb desvinculació automàtica: {}", projectId);
+                }
+                tx.commit();
+            } catch (HibernateException e) {
+                if (tx != null && tx.isActive()) tx.rollback();
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * Elimina un empleat amb totes les seves dades.
+     * - Contactes s'eliminen per orphanRemoval
+     * - Projectes es desvinculen però persisteixen
+     */
+    public static void deleteEmployee(long employeeId) {
+        try (Session session = factory.openSession()) {
+            Transaction tx = session.beginTransaction();
+            try {
+                Employee emp = session.get(Employee.class, employeeId);
+                if (emp != null) {
+                    // Desvincullar de tots els projectes (actualitza taula pont)
+                    for (Project proj : Set.copyOf(emp.getProjects())) {
+                        emp.removeProject(proj);
+                    }
+                    // Els contactes s'eliminen automàticament (orphanRemoval=true)
+                    session.remove(emp);
+                    logger.info("Empleat eliminat amb desvinculació automàtica: {}", employeeId);
+                }
+                tx.commit();
+            } catch (HibernateException e) {
+                if (tx != null && tx.isActive()) tx.rollback();
+                throw e;
+            }
+        }
+    }
+
+    /**
      * Elimina una entitat per ID.
      */
     public static <T> void delete(Class<? extends T> clazz, Serializable id) {

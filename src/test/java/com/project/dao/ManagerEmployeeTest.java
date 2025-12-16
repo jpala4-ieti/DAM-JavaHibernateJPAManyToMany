@@ -463,7 +463,7 @@ class ManagerEmployeeTest extends HibernateTestBase {
                 "L'empleat hauria d'existir abans d'eliminar");
             
             // ACT
-            Manager.delete(Employee.class, id);
+            Manager.deleteEmployee(id);
             
             // ASSERT
             assertNull(Manager.getById(Employee.class, id), 
@@ -490,7 +490,7 @@ class ManagerEmployeeTest extends HibernateTestBase {
                 "El contacte hauria d'existir abans d'eliminar l'empleat");
             
             // ACT
-            Manager.delete(Employee.class, empleatAEliminar.getEmployeeId());
+            Manager.deleteEmployee(empleatAEliminar.getEmployeeId());
             
             // ASSERT - El contacte també s'ha eliminat
             assertNull(Manager.getById(com.project.domain.Contact.class, contactId),
@@ -512,7 +512,7 @@ class ManagerEmployeeTest extends HibernateTestBase {
             );
             
             // ACT
-            Manager.delete(Employee.class, empleatAEliminar.getEmployeeId());
+            Manager.deleteEmployee(empleatAEliminar.getEmployeeId());
             
             // ASSERT - El projecte ha de continuar existint
             Project projecteRecuperat = Manager.getById(Project.class, projecteId);
@@ -542,7 +542,7 @@ class ManagerEmployeeTest extends HibernateTestBase {
             int comptadorInicial = comptarEntitats(Employee.class);
             
             // ACT
-            Manager.delete(Employee.class, empleatAEliminar.getEmployeeId());
+            Manager.deleteEmployee(empleatAEliminar.getEmployeeId());
             
             // ASSERT
             assertEquals(comptadorInicial - 1, comptarEntitats(Employee.class),

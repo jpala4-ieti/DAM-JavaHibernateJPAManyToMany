@@ -288,10 +288,8 @@ class ManagerRelationsTest extends HibernateTestBase {
             Long emp1Id = empleat1.getEmployeeId();
             Long emp2Id = empleat2.getEmployeeId();
             
-            // ACT - Desvinculem empleats abans d'eliminar
-            Manager.updateEmployeeProjects(empleat1.getEmployeeId(), Set.of());
-            Manager.updateEmployeeProjects(empleat2.getEmployeeId(), Set.of());
-            Manager.delete(Project.class, projecte1.getProjectId());
+            // ACT
+            Manager.deleteProject(projecte1.getProjectId());
                         
             // ASSERT
             assertAll(

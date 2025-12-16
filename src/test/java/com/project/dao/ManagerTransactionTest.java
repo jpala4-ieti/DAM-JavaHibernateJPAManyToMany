@@ -130,7 +130,7 @@ class ManagerTransactionTest extends HibernateTestBase {
             Long c2Id = c2.getContactId();
             
             // ACT
-            Manager.delete(Employee.class, empId);
+            Manager.deleteEmployee(empId);
             
             // ASSERT - Tot eliminat atòmicament
             assertAll(
@@ -186,7 +186,7 @@ class ManagerTransactionTest extends HibernateTestBase {
             Manager.addContactToEmployee(emp2.getEmployeeId(), "EMAIL", "k@t.com", "T");
             
             // ACT
-            Manager.delete(Employee.class, emp1.getEmployeeId());
+            Manager.deleteEmployee(emp1.getEmployeeId());
             
             // ASSERT - emp2 intacte
             Employee emp2Recuperat = Manager.getById(Employee.class, emp2.getEmployeeId());
@@ -269,7 +269,7 @@ class ManagerTransactionTest extends HibernateTestBase {
             Long empId = emp.getEmployeeId();
             
             // ACT
-            Manager.delete(Employee.class, empId);
+            Manager.deleteEmployee(empId);
             
             // ASSERT - Múltiples intents de recuperació fallen
             assertNull(Manager.getById(Employee.class, empId));

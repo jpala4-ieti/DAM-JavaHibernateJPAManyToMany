@@ -182,7 +182,7 @@ class FullIntegrationTest extends HibernateTestBase {
             assertEquals(1, Manager.findEmployeesByProject(proj1.getProjectId()).size());
             
             // ACT - Donar de baixa l'empleat
-            Manager.delete(Employee.class, empId);
+            Manager.deleteEmployee(empId);
             
             // ASSERT
             assertAll("Verificar baixa",
@@ -218,14 +218,7 @@ class FullIntegrationTest extends HibernateTestBase {
             Long projCancelId = projACancelar.getProjectId();
             
             // ACT - Cancel·lar el projecte
-            // IMPORTANT: Primer desvinculem els empleats del projecte a cancel·lar
-            // emp1 tenia projACancelar i projActiu -> només deixem projActiu
-            Manager.updateEmployeeProjects(emp1.getEmployeeId(), Set.of(projActiu));
-            // emp2 només tenia projACancelar -> desvinculem tot
-            Manager.updateEmployeeProjects(emp2.getEmployeeId(), Set.of());
-
-            // Ara ja podem eliminar el projecte
-            Manager.delete(Project.class, projCancelId);
+            Manager.deleteProject(projCancelId);
             
             // ASSERT
             assertAll("Verificar cancel·lació",
@@ -346,7 +339,7 @@ class FullIntegrationTest extends HibernateTestBase {
             
             // ACT - Eliminar tots
             for (Long id : ids) {
-                Manager.delete(Employee.class, id);
+                Manager.deleteEmployee(id);
             }
             
             // ASSERT
