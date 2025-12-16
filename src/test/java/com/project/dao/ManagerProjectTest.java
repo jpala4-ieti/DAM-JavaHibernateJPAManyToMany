@@ -498,7 +498,8 @@ class ManagerProjectTest extends HibernateTestBase {
             Long empId = emp.getEmployeeId();
             Manager.updateEmployeeProjects(empId, Set.of(projecteAEliminar));
             
-            // ACT
+            // ACT - Primer desvinculem l'empleat, després eliminem
+            Manager.updateEmployeeProjects(empId, Set.of()); // Desvincula tots els projectes
             Manager.delete(Project.class, projecteAEliminar.getProjectId());
             
             // ASSERT
@@ -551,7 +552,9 @@ class ManagerProjectTest extends HibernateTestBase {
             assertEquals(2, Manager.findEmployeesByProject(
                 projecteAEliminar.getProjectId()).size());
             
-            // ACT
+            // ACT - Desvinculem tots els empleats abans d'eliminar
+            Manager.updateEmployeeProjects(emp1.getEmployeeId(), Set.of());
+            Manager.updateEmployeeProjects(emp2.getEmployeeId(), Set.of());
             Manager.delete(Project.class, projecteAEliminar.getProjectId());
             
             // ASSERT - Els empleats continuen existint

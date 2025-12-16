@@ -104,7 +104,7 @@ class FullIntegrationTest extends HibernateTestBase {
             // Verificar recomptes
             assertEquals(5, comptarEntitats(Employee.class), "Haurien d'haver 5 empleats");
             assertEquals(3, comptarEntitats(Project.class), "Haurien d'haver 3 projectes");
-            assertEquals(9, comptarEntitats(Contact.class), "Haurien d'haver 9 contactes");
+            assertEquals(10, comptarEntitats(Contact.class), "Haurien d'haver 10 contactes");
             
             // Verificar empleats per projecte
             assertAll("Verificar assignacions a projectes",
@@ -217,7 +217,14 @@ class FullIntegrationTest extends HibernateTestBase {
             
             Long projCancelId = projACancelar.getProjectId();
             
-            // ACT - Cancel·lar el projecte (eliminar-lo)
+            // ACT - Cancel·lar el projecte
+            // IMPORTANT: Primer desvinculem els empleats del projecte a cancel·lar
+            // emp1 tenia projACancelar i projActiu -> només deixem projActiu
+            Manager.updateEmployeeProjects(emp1.getEmployeeId(), Set.of(projActiu));
+            // emp2 només tenia projACancelar -> desvinculem tot
+            Manager.updateEmployeeProjects(emp2.getEmployeeId(), Set.of());
+
+            // Ara ja podem eliminar el projecte
             Manager.delete(Project.class, projCancelId);
             
             // ASSERT

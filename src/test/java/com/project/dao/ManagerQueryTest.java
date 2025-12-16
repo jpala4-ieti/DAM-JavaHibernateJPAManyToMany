@@ -195,18 +195,27 @@ class ManagerQueryTest extends HibernateTestBase {
         @Test
         @DisplayName("queryTable pot executar funcions agregades (COUNT)")
         void queryTable_Count_Funciona() {
+            // ARRANGE
+            // El @BeforeEach ja crea 3 empleats (Anna, Pere, Maria)
+            
             // ACT
-            List<Object[]> resultats = Manager.queryTable(
+            List<?> resultats = Manager.queryTable(
                 "SELECT COUNT(*) FROM employees"
             );
             
             // ASSERT
             assertEquals(1, resultats.size());
-            // El valor pot ser Long o Integer segons el driver
-            Number count = (Number) resultats.get(0)[0];
+            // COUNT pot retornar Long directament o Object[]
+            Object firstResult = resultats.get(0);
+            Number count;
+            if (firstResult instanceof Object[]) {
+                count = (Number) ((Object[]) firstResult)[0];
+            } else {
+                count = (Number) firstResult;
+            }
             assertEquals(3, count.intValue());
-        }
-        
+        }        
+
         /**
          * Test: queryTable sense resultats retorna llista buida.
          */
@@ -237,7 +246,7 @@ class ManagerQueryTest extends HibernateTestBase {
             
             // ACT
             List<Object[]> resultats = Manager.queryTable(
-                "SELECT e.firstName, c.value " +
+                "SELECT e.firstName, c.contact_value " +
                 "FROM employees e " +
                 "JOIN contacts c ON e.id = c.employee_id"
             );
@@ -350,7 +359,7 @@ class ManagerQueryTest extends HibernateTestBase {
             );
             
             List<Object[]> resultats = Manager.queryTable(
-                "SELECT contact_type, value, description FROM contacts"
+                "SELECT contactType, contact_value, description FROM contacts"
             );
             
             // ACT
