@@ -46,7 +46,7 @@ public class Contact implements Serializable {
     /**
      * Valor del contacte (l'email, telèfon o adreça concreta).
      */
-    @Column(nullable = false, length = 255)
+    @Column(name = "contact_value", nullable = false, length = 255)
     private String value;
     
     /**

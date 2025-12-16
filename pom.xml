@@ -102,6 +102,47 @@
             <artifactId>logback-core</artifactId>
             <version>1.5.12</version>
         </dependency>
+
+
+        <!-- JUnit 5 - Jupiter API -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.11.3</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- JUnit 5 - Engine (necessari per executar tests) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.11.3</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- JUnit 5 - Params (tests parametritzats) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>5.11.3</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- AssertJ - Assertions fluides i llegibles -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.26.3</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- H2 Database - BD en memòria per tests -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
+            <scope>test</scope>
+        </dependency>        
     </dependencies>
     
     <profiles>
@@ -114,6 +155,12 @@
                         <artifactId>exec-maven-plugin</artifactId>
                         <version>3.1.0</version>
                     </plugin>
+                    <!-- Plugin Surefire per executar tests JUnit 5 -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>3.2.5</version>
+                    </plugin>                
                 </plugins>
             </build>
         </profile>

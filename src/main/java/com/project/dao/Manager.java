@@ -343,12 +343,12 @@ public class Manager {
                 Employee emp = session.get(Employee.class, employeeId);
                 if (emp != null) {
                     Contact contact = new Contact(contactType, value, description);
-                    emp.addContact(contact);  // Manté consistència bidireccional
-                    // Gràcies a cascade=ALL, el contact es persisteix automàticament
+                    emp.addContact(contact);
+                    session.persist(contact);  // AFEGIR AQUESTA LÍNIA - persistir explícitament
                     session.merge(emp);
-                    result = contact;
+                    result = contact;  // Ara contact té l'ID assignat
                     logger.info("Contacte afegit a l'empleat {}: {}", 
-                               employeeId, contact.getContactId());
+                            employeeId, contact.getContactId());
                 } else {
                     logger.warn("No s'ha trobat l'empleat amb ID: {}", employeeId);
                 }
@@ -361,7 +361,7 @@ public class Manager {
         }
         return result;
     }
-
+    
     /**
      * Cerca contactes d'un empleat filtrats per tipus.
      */
